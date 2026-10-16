@@ -1,0 +1,7 @@
+﻿bin/
+obj/
+*.log
+logs/
+loggers.json
+msbuild_log*.txt
+.vs/
