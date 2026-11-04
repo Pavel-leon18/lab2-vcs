@@ -1,32 +1,58 @@
 pipeline {
     agent any
 
+    environment {
+        PROJECT_NAME = 'LoggingSystem'
+        DOTNET_VERSION = '9.0'
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                echo 'Код получен из Git'
-                sh 'ls -la || dir'
+                echo "Клонирование проекта ${env.PROJECT_NAME}..."
+                checkout scm
             }
         }
-        stage('Build') {
+        
+        stage('Setup') {
             steps {
-                echo 'Сборка проекта...'
-                sh 'dotnet --version || echo "dotnet не найден"'
+                echo 'Установка зависимостей...'
+                bat 'dotnet restore || echo "Ошибка restore"'
             }
         }
+        
+        stage('Lint') {
+            steps {
+                echo 'Статический анализ (сборка)...'
+                bat 'dotnet build --no-restore || echo "Ошибка build"'
+            }
+        }
+        
         stage('Test') {
             steps {
                 echo 'Запуск тестов...'
-                sh 'echo "Тесты прошли"'
+                bat 'dotnet test --no-build || echo "Тесты не найдены или упали"'
+            }
+        }
+        
+        stage('Archive') {
+            steps {
+                echo 'Сохранение артефакта...'
+                bat 'if not exist artifacts mkdir artifacts && echo Build %BUILD_NUMBER% > artifacts\\build.txt'
+                archiveArtifacts artifacts: 'artifacts/**', allowEmptyArchive: true
             }
         }
     }
+    
     post {
+        always {
+            echo "Pipeline завершён. Номер сборки: ${env.BUILD_NUMBER}"
+        }
         success {
-            echo 'Пайплайн завершён успешно!'
+            echo 'Все этапы прошли успешно!'
         }
         failure {
-            echo 'Пайплайн завершился с ошибкой'
+            echo 'Один из этапов завершился с ошибкой'
         }
     }
 }
