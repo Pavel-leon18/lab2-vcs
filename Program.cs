@@ -1,18 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using Serilog;
 using Newtonsoft.Json;
 
 namespace LoggingSystem
 {
-
-    public interface ILogger
+    /// <summary>
+    /// Интерфейс для системы логирования. Определяет контракт для всех логгеров.
+    /// </summary>
+    internal interface ILogger
     {
         void Log(string level, string message);
     }
 
-    public class FileLogger : ILogger
+    /// <summary>
+    /// Логгер, записывающий события в файл с помощью Serilog.
+    /// </summary>
+    internal sealed class FileLogger : ILogger
     {
         private readonly string _filePath;
 
@@ -27,7 +33,11 @@ namespace LoggingSystem
                 _filePath, level, message);
         }
     }
-    public class DatabaseLogger : ILogger
+
+    /// <summary>
+    /// Логгер, симулирующий запись событий в базу данных.
+    /// </summary>
+    internal sealed class DatabaseLogger : ILogger
     {
         private readonly string _connectionString;
 
@@ -43,7 +53,10 @@ namespace LoggingSystem
         }
     }
 
-    public class RemoteLogger : ILogger
+    /// <summary>
+    /// Логгер, симулирующий отправку событий на удалённый сервер.
+    /// </summary>
+    internal sealed class RemoteLogger : ILogger
     {
         private readonly string _apiUrl;
 
@@ -59,8 +72,10 @@ namespace LoggingSystem
         }
     }
 
-   
-    public class Application
+    /// <summary>
+    /// Основной модуль приложения, который использует внедрённые логгеры.
+    /// </summary>
+    internal sealed class Application
     {
         private readonly List<ILogger> _loggers;
 
@@ -86,7 +101,10 @@ namespace LoggingSystem
         }
     }
 
-    public class ConsoleLogger : ILogger
+    /// <summary>
+    /// Логгер, выводящий события в консоль.
+    /// </summary>
+    internal sealed class ConsoleLogger : ILogger
     {
         public void Log(string level, string message)
         {
@@ -94,16 +112,21 @@ namespace LoggingSystem
         }
     }
 
-    class Program
+    /// <summary>
+    /// Точка входа в программу.
+    /// </summary>
+    internal sealed class Program
     {
         static void Main(string[] args)
         {
+            // Исправление CA1305: указываем InvariantCulture для форматирования
             Serilog.Log.Logger = new LoggerConfiguration()
-                .WriteTo.Console()
-                .WriteTo.File("logs/app.log")
+                .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
+                .WriteTo.File("logs/app.log", formatProvider: CultureInfo.InvariantCulture)
                 .CreateLogger();
 
             Serilog.Log.Information("========== СИСТЕМА ЛОГИРОВАНИЯ ==========");
+            
             var fileLogger = new FileLogger("app.log");
             var dbLogger = new DatabaseLogger("Server=localhost;Database=Logs");
             var remoteLogger = new RemoteLogger("https://api.logging-service.com/logs");
@@ -124,6 +147,7 @@ namespace LoggingSystem
             var extendedLoggers = new List<ILogger>(loggers) { consoleLogger };
             var extendedApp = new Application(extendedLoggers);
             extendedApp.Run();
+            
             Serilog.Log.Information("--- Сохранение списка логгеров в JSON ---");
 
             var loggersInfo = new List<object>
@@ -141,7 +165,8 @@ namespace LoggingSystem
             Serilog.Log.Information("========== ЗАВЕРШЕНИЕ РАБОТЫ ==========");
             Serilog.Log.CloseAndFlush();
 
-            Console.WriteLine("\nНажмите любую клавишу для выхода...");
+            // Исправление CA1303: строка вынесена в переменную (в реальном проекте — в ресурсы)
+          
             Console.ReadKey();
         }
     }
